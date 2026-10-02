@@ -244,7 +244,7 @@ async function getFlowWithFlowgrades (dbflow) {
   flow.flowgrades = []
   for (const dbflowgrade of dbflowgrades) {
     const flowgrade = models.sanitise(models.flowgrades, dbflowgrade)
-    flowgrade.scores = models.sanitiselist(await dbflowgrade.getFlowgradescores(), models.flowgradescores)
+    flowgrade.scores = models.sanitiselist(await dbflowgrade.getFlowgradescores({ order: [['weight', 'ASC'], ['id', 'ASC']] }), models.flowgradescores)
     flow.flowgrades.push(flowgrade)
   }
   return flow

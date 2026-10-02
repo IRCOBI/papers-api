@@ -146,7 +146,7 @@ async function downloadFull (req, res, next, all) {
 
     // Paper id, Status, Title, Accept, Reject, Conflict-of-interest, Insufficient background, WillReview, WillReviewers, Comments
     const summaryHeader = ['Paper id', 'Status', 'Title']
-    const dbflowgradescores = await dbflowgrade.getFlowgradescores()
+    const dbflowgradescores = await dbflowgrade.getFlowgradescores({ order: [['weight', 'ASC'], ['id', 'ASC']] })
     for (const dbflowgradescore of dbflowgradescores) {
       summaryHeader.push(dbflowgradescore.name)
     }
@@ -526,7 +526,7 @@ async function downloadReviewerPerformance (req, res, next) {
       summaryHeader.push(gradename + ' duration')
       summaryHeader.push(gradename + ' length')
 
-      dbflowgrade.flowgradescores = await dbflowgrade.getFlowgradescores()
+      dbflowgrade.flowgradescores = await dbflowgrade.getFlowgradescores({ order: [['weight', 'ASC'], ['id', 'ASC']] })
 
       const dbsentpubmailtemplate = await models.pubmailtemplates.findOne({ where: { flowstatusId: dbflowgrade.flowstatusId } })
       dbflowgrade.sentpubmailtemplateId = dbsentpubmailtemplate ? dbsentpubmailtemplate.id : 0
