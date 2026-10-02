@@ -6,6 +6,7 @@ const models = require('../models')
 const utils = require('../utils')
 const logger = require('../logger')
 const dbutils = require('./dbutils')
+const shortcomms = require('../lib/shortcomms')
 
 const router = Router()
 
@@ -461,6 +462,7 @@ async function dupPublication (req, res, next) {
     const dbmailtemplates = await req.dbpub.getMailTemplates()
     for (const dbmailtemplate of dbmailtemplates) {
       const newmailtemplate = models.duplicate(models.pubmailtemplates, dbmailtemplate)
+      newmailtemplate.body = shortcomms.upgradeMailBody(newmailtemplate.body)
 
       if (newmailtemplate.pubroleId) {
         const dboldpubrole = _.find(dbpubroles, (pr) => { return pr.id === newmailtemplate.pubroleId })
@@ -548,7 +550,7 @@ async function dupPublication (req, res, next) {
             const dbrefdff = _.find(dbformfields, (fs) => { return fs.id === refdid })
             if (!dbrefdff) { await ta.rollback(); return utils.giveup(req, res, 'Could not find refdid for requiredif') }
             dbnewformfield.requiredif = dbrefdff.newid + dbformfield.requiredif.substring(eqpos)
-            dbnewformfield.save({ transaction: ta }) // Transaction DONE
+            await dbnewformfield.save({ transaction: ta }) // Transaction DONE
           }
         }
 
@@ -558,7 +560,7 @@ async function dupPublication (req, res, next) {
             const dbnewpubmailtemplate = await models.pubmailtemplates.findByPk(dbmailtemplate.newid, { transaction: ta })
             if (!dbnewpubmailtemplate) { await ta.rollback(); return utils.giveup(req, res, 'Could not find refd mailtemplate') }
             dbnewpubmailtemplate.flowstageId = dbflowstage.newid
-            dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
+            await dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
           }
         }
       }
@@ -589,7 +591,7 @@ async function dupPublication (req, res, next) {
             const dbnewpubmailtemplate = await models.pubmailtemplates.findByPk(dbmailtemplate.newid, { transaction: ta })
             if (!dbnewpubmailtemplate) { await ta.rollback(); return utils.giveup(req, res, 'Could not find refd mailtemplate') }
             dbnewpubmailtemplate.flowstatusId = dbflowstatus.newid
-            dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
+            await dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
           }
         }
       }
@@ -629,9 +631,14 @@ async function dupPublication (req, res, next) {
         if (!dbnewflowgrade) { await ta.rollback(); return utils.giveup(req, res, 'Could not create duplicate flowgrade') }
         dbflowgrade.newid = dbnewflowgrade.id
 
-        const dbflowgradescores = await dbflowgrade.getFlowgradescores()
-        for (const dbflowgradescore of dbflowgradescores) {
-          const newflowgradescore = models.duplicate(models.flowgradescores, dbflowgradescore)
+        const dbflowgradescores = await dbflowgrade.getFlowgradescores({ order: [['weight', 'ASC'], ['id', 'ASC']] })
+        const scorenames = shortcomms.upgradeScoreNames(dbflow.name, dbflowgradescores.map(sc => sc.name))
+        for (const scorename of scorenames) {
+          // Expanded graded accepts share the original Accept's weight; creation order breaks the tie
+          const dbsource = _.find(dbflowgradescores, sc => sc.name === scorename) ||
+            _.find(dbflowgradescores, sc => sc.name === 'Accept')
+          const newflowgradescore = models.duplicate(models.flowgradescores, dbsource)
+          newflowgradescore.name = scorename
           const dbnewflowgradescore = await dbnewflowgrade.createFlowgradescore(newflowgradescore, { transaction: ta }) // Transaction DONE
           if (!dbnewflowgradescore) { await ta.rollback(); return utils.giveup(req, res, 'Could not create duplicate flowgradescore') }
         }
@@ -642,7 +649,7 @@ async function dupPublication (req, res, next) {
             const dbnewpubmailtemplate = await models.pubmailtemplates.findByPk(dbmailtemplate.newid, { transaction: ta })
             if (!dbnewpubmailtemplate) { await ta.rollback(); return utils.giveup(req, res, 'Could not find refd mailtemplate') }
             dbnewpubmailtemplate.flowgradeId = dbflowgrade.newid
-            dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
+            await dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
           }
         }
 
@@ -652,7 +659,7 @@ async function dupPublication (req, res, next) {
             const dbnewformfield = await models.formfields.findByPk(newformfield.id, { transaction: ta })
             if (!dbnewformfield) { await ta.rollback(); return utils.giveup(req, res, 'Could not find refd hideatgrading formfield') }
             dbnewformfield.hideatgrading = dbflowgrade.newid
-            dbnewformfield.save({ transaction: ta }) // Transaction DONE
+            await dbnewformfield.save({ transaction: ta }) // Transaction DONE
           }
         }
       }
@@ -700,7 +707,7 @@ async function dupPublication (req, res, next) {
         const dbnewpubmailtemplate = await models.pubmailtemplates.findByPk(dbmailtemplate.newid, { transaction: ta })
         if (!dbnewpubmailtemplate) { await ta.rollback(); return utils.giveup(req, res, 'Could not find refd mailtemplate') }
         dbnewpubmailtemplate.body = body
-        dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
+        await dbnewpubmailtemplate.save({ transaction: ta }) // Transaction DONE
       }
     }
 

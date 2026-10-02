@@ -1,0 +1,17 @@
+{
+  "name": "Duplicate pub 1",
+  "api": [
+    {
+      "name": "editPublication duplicate OK",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": {
+        "pubname": "Next year pub",
+        "pubdupusers": false
+      },
+      "return": {
+        "ret": 0
+      }
+    }
+  ]
+}
