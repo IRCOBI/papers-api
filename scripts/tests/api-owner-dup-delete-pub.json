@@ -1,0 +1,24 @@
+{
+  "name": "Owner duplicates then deletes empty copy",
+  "api": [
+    {
+      "name": "owner duplicates pub 1 without copying users",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": { "pubname": "Owner copy", "pubdupusers": false },
+      "return": { "ret": 0 }
+    },
+    {
+      "name": "owner can delete empty copy",
+      "method": "postdelete",
+      "uri": "/pubs/2",
+      "return": { "ret": 0 }
+    },
+    {
+      "name": "owner cannot delete pub with submissions",
+      "method": "postdelete",
+      "uri": "/pubs/1",
+      "return": { "ret": 1, "prop": "status", "value": "Publication has submissions so cannot be deleted" }
+    }
+  ]
+}

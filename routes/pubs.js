@@ -230,16 +230,24 @@ router.post('/pubs/:pubid', async function (req, res, next) {
 
 /* ************************ */
 /* POST delete publication */
-/* ACCESS: SUPER-ONLY TO TEST */
+/* ACCESS: SUPER, OR OWNER OF A PUB WITH NO SUBMISSIONS */
 async function deletePublication (req, res, next) {
   // console.log('DELETE /pubs')
   try {
-    if (!req.dbuser.super) return utils.giveup(req, res, 'Not a super')
-
     const pubid = parseInt(req.params.pubid)
     if (isNaN(pubid)) return utils.giveup(req, res, 'Duff pubid')
     const dbpub = await models.pubs.findByPk(pubid)
     if (!dbpub) return utils.giveup(req, res, 'Cannot find pub ' + pubid)
+
+    if (!req.dbuser.super) {
+      req.dbpub = dbpub
+      if (!await dbutils.getMyRoles(req)) return utils.giveup(req, res, 'No access to this publication')
+      if (!req.isowner) return utils.giveup(req, res, 'Not an owner')
+      for (const dbflow of await dbpub.getFlows()) {
+        const dbsubmits = await dbflow.getSubmits()
+        if (dbsubmits.length > 0) return utils.giveup(req, res, 'Publication has submissions so cannot be deleted')
+      }
+    }
 
     const ta = await sequelize.transaction()
     try {
@@ -375,12 +383,12 @@ async function editPublication (req, res, next) {
         logger.log4req(req, 'Publication user added as ' + dbpubrole.name, userid)
         somethingDone = true
       }
-      // SUPER: ADD USER WITH ROLE IN PUB
-      if ('pubname' in req.body && 'pubdupusers' in req.body) {
-        const dupok = await dupPublication(req, res, next)
-        if (!dupok) return
-        somethingDone = true
-      }
+    }
+    // OWNER or SUPER: DUPLICATE PUB
+    if ('pubname' in req.body && 'pubdupusers' in req.body) {
+      const dupok = await dupPublication(req, res, next)
+      if (!dupok) return
+      somethingDone = true
     }
     if (!somethingDone) return utils.giveup(req, res, 'editPublication: invalid parameters')
 
@@ -394,7 +402,7 @@ async function editPublication (req, res, next) {
 /* ************************ */
 /* POST edit publication: duplicate publication
  * */
-/* ACCESS: OWNER OR SUPER TO TEST */
+/* ACCESS: OWNER OR SUPER */
 async function dupPublication (req, res, next) {
   const pubname = req.body.pubname.trim()
   if (pubname.length === 0) return utils.giveup(req, res, 'pubname empty')
@@ -715,6 +723,14 @@ async function dupPublication (req, res, next) {
       const dbpubusers = await req.dbpub.getUsers()
       for (const dbpubuser of dbpubusers) {
         await dbnewpub.addUser(dbpubuser, { transaction: ta }) // Transaction DONE
+      }
+    } else if (!req.dbuser.super) {
+      // An owner who duplicates without copying users must still own the copy
+      await dbnewpub.addUser(req.dbuser, { transaction: ta }) // Transaction DONE
+      for (const dbpubrole of dbpubroles) {
+        if (!dbpubrole.isowner) continue
+        const dbnewpubrole = await models.pubroles.findByPk(dbpubrole.newid, { transaction: ta })
+        await dbnewpubrole.addUser(req.dbuser, { transaction: ta }) // Transaction DONE
       }
     }
 

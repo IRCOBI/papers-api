@@ -1,0 +1,12 @@
+{
+  "name": "Owner duplicates pub, keeps copy",
+  "api": [
+    {
+      "name": "owner duplicates pub 1 without copying users",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": { "pubname": "Owner kept copy", "pubdupusers": false },
+      "return": { "ret": 0 }
+    }
+  ]
+}
