@@ -1,0 +1,12 @@
+{
+  "name": "Non-owner cannot edit pub",
+  "api": [
+    {
+      "name": "author cannot edit description",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": { "editdescription": "Hacked" },
+      "return": { "ret": 1, "prop": "status", "value": "No access to this publication" }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Owner edits pub name and description",
+  "api": [
+    {
+      "name": "owner edits name and description",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": { "editname": " Conf 2027 ", "editdescription": " Submissions for the 2027 conference. " },
+      "return": { "ret": 0 }
+    },
+    {
+      "name": "empty description refused",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": { "editdescription": "  " },
+      "return": { "ret": 1, "prop": "status", "value": "Description empty" }
+    },
+    {
+      "name": "duplicate name refused",
+      "method": "post",
+      "uri": "/pubs/1",
+      "data": { "editname": "other pub" },
+      "return": { "ret": 1, "prop": "status", "value": "Name already exists" }
+    }
+  ]
+}

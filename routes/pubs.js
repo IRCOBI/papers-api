@@ -298,6 +298,7 @@ async function deletePublication (req, res, next) {
 /* ************************ */
 /* POST edit publication: different calls:
  * - enabled
+ * - editname and/or editdescription
  * - addPubRoleOwner
  * - addroleid+addroleuserid
  * - pubname+pubdupusers
@@ -326,6 +327,32 @@ async function editPublication (req, res, next) {
       await req.dbpub.save() // Transaction OK
 
       logger.log4req(req, 'Publication enabled toggled', pubid, req.body.enabled)
+      somethingDone = true
+    }
+    // OWNER or SUPER: EDIT NAME AND/OR DESCRIPTION
+    if ('editname' in req.body || 'editdescription' in req.body) {
+      if ('editname' in req.body) {
+        if (typeof req.body.editname !== 'string') return utils.giveup(req, res, 'editname not string')
+        const editname = req.body.editname.trim()
+        if (editname.length === 0) return utils.giveup(req, res, 'Name empty')
+        if (editname.length > 50) return utils.giveup(req, res, 'Name too long: max 50 characters')
+        const matching = await models.pubs.findAll({
+          where: {
+            name: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), 'LIKE', editname.toLowerCase())
+          }
+        })
+        if (matching.some(dbpub => dbpub.id !== req.dbpub.id)) return utils.giveup(req, res, 'Name already exists')
+        req.dbpub.name = editname
+        req.dbpub.title = editname
+      }
+      if ('editdescription' in req.body) {
+        if (typeof req.body.editdescription !== 'string') return utils.giveup(req, res, 'editdescription not string')
+        const editdescription = req.body.editdescription.trim()
+        if (editdescription.length === 0) return utils.giveup(req, res, 'Description empty')
+        req.dbpub.description = editdescription
+      }
+      await req.dbpub.save() // Transaction OK
+      logger.log4req(req, 'Publication name/description edited', pubid)
       somethingDone = true
     }
     if (req.dbuser.super) {
