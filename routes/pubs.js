@@ -116,7 +116,10 @@ router.get('/pubs', async function (req, res, next) {
 
       pubs.push(pub)
     }
-    utils.returnOK(req, res, pubs, 'pubs')
+    const rv = { ret: 0, status: 'OK', pubs }
+    // Let supers and owners know if emails aren't going out
+    if (req.dbuser.super || pubs.some(pub => pub.isowner)) rv.mailproblem = utils.getMailProblem()
+    res.status(200).json(rv)
   } catch (e) {
     utils.giveup(req, res, e.message)
   }

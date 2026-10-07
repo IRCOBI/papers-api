@@ -4,6 +4,21 @@ let transport = false
 let fromEmail = false
 let adminEmail = false
 let sitename = false
+// Why mail isn't working, shown to supers and owners as a banner; null when mail is OK
+let mailProblem = null
+
+function setMailProblem (problem) {
+  if (!mailProblem) logger.log('MAIL PROBLEM', problem)
+  mailProblem = { problem, since: new Date().toISOString() }
+}
+
+function clearMailProblem () {
+  mailProblem = null
+}
+
+function getMailProblem () {
+  return mailProblem
+}
 
 // Report error but don't call next
 function exterminate (req, res, err) {
@@ -34,6 +49,7 @@ function setMailTransport (_transport, _fromEmail, _adminEmail, _sitename) {
   fromEmail = _fromEmail
   adminEmail = _adminEmail
   sitename = _sitename
+  clearMailProblem()
 }
 
 function getSiteName () {
@@ -43,6 +59,7 @@ function getSiteName () {
 function asyncMail (toEmail, subject, message, bccEmail) {
   if (!transport || !fromEmail) {
     console.log('NO MAIL TRANSPORT/FROM TO SEND', subject, message)
+    if (!mailProblem) setMailProblem('Mail is not set up, so emails are not being sent')
     console.log(transport)
     console.log(fromEmail)
     return
@@ -63,9 +80,11 @@ function asyncMail (toEmail, subject, message, bccEmail) {
     if (process.env.TESTING) console.log('sent mail:', subject, err, info)
     if (err) {
       logger.log('Send mail fail', subject, err)
+      setMailProblem('Sending email failed: ' + err.message)
       return
     }
     logger.log('Sent mail OK', subject, info)
+    clearMailProblem()
   })
 }
 
@@ -80,5 +99,7 @@ module.exports = {
   asyncMail,
   asyncSleep,
   setMailTransport,
+  setMailProblem,
+  getMailProblem,
   getSiteName
 }

@@ -1,0 +1,11 @@
+{
+  "name": "Owner sees no mail problem when mail OK",
+  "api": [
+    {
+      "name": "owner pubs listing has null mail problem",
+      "method": "get",
+      "uri": "/pubs",
+      "return": { "ret": 0, "prop": "mailproblem", "typeof": "object" }
+    }
+  ]
+}

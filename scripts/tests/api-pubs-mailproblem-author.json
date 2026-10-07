@@ -1,0 +1,11 @@
+{
+  "name": "Author does not see mail problem",
+  "api": [
+    {
+      "name": "author pubs listing has no mail problem",
+      "method": "get",
+      "uri": "/pubs",
+      "return": { "ret": 0, "prop": "mailproblem", "typeof": "undefined" }
+    }
+  ]
+}

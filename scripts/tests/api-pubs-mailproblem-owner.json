@@ -1,0 +1,11 @@
+{
+  "name": "Owner sees mail problem",
+  "api": [
+    {
+      "name": "owner pubs listing includes mail problem",
+      "method": "get",
+      "uri": "/pubs",
+      "return": { "ret": 0, "prop": "mailproblem.problem", "value": "Test mail problem" }
+    }
+  ]
+}

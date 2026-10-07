@@ -106,6 +106,7 @@ app.checkDatabases = async function (setupdb) {
     const stopmail = ('stopmailfile' in privatesettings) && fs.existsSync(privatesettings.stopmailfile)
     if (stopmail) {
       logger.log('Stop mail file exists: ' + privatesettings.stopmailfile)
+      utils.setMailProblem('Email sending has been stopped (stop mail file present)')
     } else if ('transport-sendmail' in privatesettings && 'transport-newline' in privatesettings && 'transport-path' in privatesettings && 'email-from' in privatesettings) {
       try {
         if (privatesettings['transport-sendmail']) {
@@ -137,9 +138,11 @@ app.checkDatabases = async function (setupdb) {
         }
       } catch (e) {
         logger.log('Cannot create mail transport', e.message)
+        utils.setMailProblem('Cannot connect to the mail server, so emails are not being sent: ' + e.message)
       }
     } else {
       logger.log('Mail transport parameters not specified')
+      utils.setMailProblem('Mail settings are missing, so emails are not being sent')
     }
     const transport = app.get('transport')
     if (transport && privatesettings['admin-email']) {
