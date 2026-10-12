@@ -5,6 +5,7 @@ const models = require('./models')
 const utils = require('./utils')
 const logger = require('./logger')
 const dbutils = require('./routes/dbutils')
+const mailutils = require('./routes/mailutils')
 
 let started = false
 
@@ -119,22 +120,15 @@ async function sendMail (dbpubmail, dbsubmit, dbreviewer) {
   let subject = Handlebars.compile(dbpubmail.subject)
   let body = Handlebars.compile(dbpubmail.body)
 
-  const bccOwners = []
-  const bccEmails = []
+  let bccOwners = []
   if (dbpubmail.bccToOwners) {
     const dbflow = await dbsubmit.getFlow()
     if (!dbflow) return logger.warn4req(false, 'Could not find flow so not sending mail')
     const dbpub = await dbflow.getPub()
     if (!dbpub) return logger.warn4req(false, 'Could not find pub so not sending mail')
-    const dbownerroles = await dbpub.getPubroles({ where: { isowner: true } })
-    for (const dbownerrole of dbownerroles) {
-      const dbownerusers = await dbownerrole.getUsers()
-      for (const dbowneruser of dbownerusers) {
-        bccOwners.push(dbowneruser)
-        bccEmails.push(dbowneruser.email)
-      }
-    }
+    bccOwners = await mailutils.ownersToCopy(dbpub)
   }
+  const bccEmails = bccOwners.map(owner => owner.email)
 
   const dbauthor = await dbsubmit.getUser()
   const author = dbauthor ? models.sanitise(models.users, dbauthor) : false

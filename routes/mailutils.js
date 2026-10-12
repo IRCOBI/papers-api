@@ -6,6 +6,24 @@ const logger = require('../logger')
 const dbutils = require('./dbutils')
 
 /* ************************ */
+// The owners a template copies its mails to. Supers are left out: they hold owner
+// roles to run the site, not to follow each publication's mail.
+
+async function ownersToCopy (dbpub) {
+  const owners = []
+  const dbownerroles = await dbpub.getPubroles({ where: { isowner: true } })
+  for (const dbownerrole of dbownerroles) {
+    const dbownerusers = await dbownerrole.getUsers()
+    for (const dbowneruser of dbownerusers) {
+      if (dbowneruser.super) continue
+      if (owners.some(owner => owner.id === dbowneruser.id)) continue
+      owners.push(dbowneruser)
+    }
+  }
+  return owners
+}
+
+/* ************************ */
 // req.dbsubmit must be set
 // CHECK: could assume that req.dbflow and req.dbpub set
 
@@ -52,18 +70,8 @@ async function sendOutMails (req, dbflowstage, dbflowstatus, dbflowgrade, dbentr
 /* ************************ */
 
 async function sendOneTemplate (dbuserid, dbpubmail, site, dbpub, dbformfields, dbuser, dbsubmit, dbentry, grading, reqbody, data) {
-  const bccOwners = []
-  const bccEmails = []
-  if (dbpub && dbpubmail.bccToOwners) {
-    const dbownerroles = await dbpub.getPubroles({ where: { isowner: true } })
-    for (const dbownerrole of dbownerroles) {
-      const dbownerusers = await dbownerrole.getUsers()
-      for (const dbowneruser of dbownerusers) {
-        bccOwners.push(dbowneruser)
-        bccEmails.push(dbowneruser.email)
-      }
-    }
-  }
+  const bccOwners = (dbpub && dbpubmail.bccToOwners) ? await ownersToCopy(dbpub) : []
+  const bccEmails = bccOwners.map(owner => owner.email)
 
   const recipients = []
   const dbpubrole = await dbpubmail.getPubrole()
@@ -139,14 +147,14 @@ async function sendOneTemplate (dbuserid, dbpubmail, site, dbpub, dbformfields, 
   // console.log('sendOutMails', data)
   subject = subject(data)
   body = body(data)
-  const bcc = bccEmails.join(',')
+  let bcc = bccEmails.join(',')
   const submitId = dbsubmit ? dbsubmit.id : null
   const entryId = dbentry ? dbentry.id : null
   if (recipients.length > 0) {
     for (const recipient of recipients) {
       utils.asyncMail(recipient.email, subject, body, bcc)
       await dbutils.addActionLog(null, 'add', dbuserid, recipient.id, submitId, entryId, null, null, null, dbpubmail.id)
-      // bcc = false
+      bcc = false // Owners get one copy, not one per recipient
     }
   } else {
     for (const bccEmail of bccEmails) {
@@ -160,6 +168,7 @@ async function sendOneTemplate (dbuserid, dbpubmail, site, dbpub, dbformfields, 
 /* ************************ */
 
 module.exports = {
+  ownersToCopy,
   sendOutMails,
   sendOneTemplate
 }
