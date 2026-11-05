@@ -6,8 +6,9 @@ const logger = require('../logger')
 const dbutils = require('./dbutils')
 
 /* ************************ */
-// The owners a template copies its mails to. Supers are left out: they hold owner
-// roles to run the site, not to follow each publication's mail.
+// The owners a template copies its mails to, each once. Supers with an Owner role are
+// included: the secretariat's account is a super, and these copies are how it hears of
+// access requests. A super who doesn't want the copies needs no Owner role to run a pub.
 
 async function ownersToCopy (dbpub) {
   const owners = []
@@ -15,7 +16,6 @@ async function ownersToCopy (dbpub) {
   for (const dbownerrole of dbownerroles) {
     const dbownerusers = await dbownerrole.getUsers()
     for (const dbowneruser of dbownerusers) {
-      if (dbowneruser.super) continue
       if (owners.some(owner => owner.id === dbowneruser.id)) continue
       owners.push(dbowneruser)
     }

@@ -45,14 +45,15 @@ describe('OWNER BCC', () => {
   })
   afterEach(() => jest.restoreAllMocks())
 
-  it('copies owners once each, leaving out supers', async () => {
+  it('copies owners once each, supers included', async () => {
+    // The secretariat's account is a super, and its owner copies are how it hears of access requests
     const owners = await mailutils.ownersToCopy(fakepub)
-    expect(owners.map(o => o.email)).toEqual(['owner@example.org'])
+    expect(owners.map(o => o.email)).toEqual(['owner@example.org', 'super@example.org'])
   })
 
   it('sends the owner copy with the first recipient only', async () => {
     await mailutils.sendOneTemplate(0, fakepubmail, false, fakepub, false, { id: 0 }, false, false, false, false)
     expect(mails.map(m => m.to)).toEqual(['r1@example.org', 'r2@example.org', 'r3@example.org'])
-    expect(mails.map(m => m.bcc)).toEqual(['owner@example.org', false, false])
+    expect(mails.map(m => m.bcc)).toEqual(['owner@example.org,super@example.org', false, false])
   })
 })
