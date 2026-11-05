@@ -77,6 +77,7 @@ async function getMyRoles (req) {
     }
   }
   if (req.myroles.length >= 2) req.onlyanauthor = false
+  if (req.dbuser.super) req.onlyanauthor = false // A super sees all submissions, even if their only role here is Author
   logger.log('GETMYROLES_DEBUG', `FINAL isauthor=${req.isauthor}`, `isowner=${req.isowner}`, `rolescount=${req.myroles.length}`)
 
   return true
